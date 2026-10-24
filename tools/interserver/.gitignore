@@ -1,0 +1,11 @@
+*.dll
+*.log
+*.dmb
+*.rsc
+*.key
+pair*.json
+interserver_transit.json
+protocol-test-result.txt
+peer-test-result.txt
+peer-test.key
+test-journal-*/

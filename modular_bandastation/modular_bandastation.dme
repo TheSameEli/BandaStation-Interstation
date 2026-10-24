@@ -97,6 +97,7 @@
 #include "vampire/_vampire.dme"
 #include "weapon/_weapon.dme"
 #include "world_topics/_world_topics.dme"
+#include "interserver_transit/_interserver_transit.dme"
 // --- MODULES END --- //
 
 // --- PRIME --- //

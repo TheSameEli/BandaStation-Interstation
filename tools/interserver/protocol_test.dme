@@ -1,0 +1,130 @@
+#define TRUE 1
+#define FALSE 0
+#define RUSTG_HASH_SHA256 "sha256"
+#define rustg_hash_string(kind, text) call_ext("rust_g", "hash_string")(kind, text)
+#define rustg_file_write(text, path) call_ext("rust_g", "file_write")(text, path)
+#define rustg_csprng_chacha20(format, n_bytes) call_ext("rust_g", "csprng_chacha20")(format, "[n_bytes]")
+#include "../../modular_bandastation/interserver_transit/code/journal.dm"
+#include "../../modular_bandastation/interserver_transit/code/ownership.dm"
+#include "../../modular_bandastation/interserver_transit/code/peer.dm"
+#include "../../modular_bandastation/interserver_transit/code/snapshot_store.dm"
+#include "../../modular_bandastation/interserver_transit/code/values.dm"
+
+/world
+	fps = 10
+
+/proc/check(condition, description)
+	if(!condition)
+		world.log << "FAIL: [description]"
+		text2file("FAIL: [description]\n", "protocol-test-result.txt")
+		del(world)
+		throw description
+
+/proc/test_message(command, sender = "A", id = "operation-0000001", epoch = 1)
+	return list("pair" = "test-pair", "rounds" = list("A" = "round-A", "B" = "round-B"), "sender" = sender, "id" = id, "epoch" = epoch, "command" = command, "source" = "A", "destination" = "B", "digest" = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
+
+/world/New()
+	..()
+	fdel("protocol-test-result.txt")
+	var/datum/transit_ownership/machine = new
+	var/list/state = machine.bootstrap("test-pair", "A", "round-A", "B", "round-B")
+	check(state && state["owner"] == "A", "bootstrap")
+	check(!machine.apply(state, test_message("RELEASED")), "cannot release an unreserved flight")
+	state = machine.apply(state, test_message("RESERVE"))
+	check(state && state["phase"] == "PREPARING", "reserve")
+	check(machine.apply(state, test_message("RESERVE")), "reserve retry")
+	check(!machine.apply(state, test_message("RESERVE", "B", "operation-0000002")), "concurrent call")
+	check(!machine.apply(state, test_message("RELEASED")), "release before prepare")
+	check(!machine.apply(state, test_message("PREPARED", "A")), "wrong preparation sender")
+	var/list/wrong_round = test_message("PREPARED", "B")
+	wrong_round["rounds"] = list("A" = "round-A", "B" = "next-round")
+	check(!machine.apply(state, wrong_round), "cross-round replay")
+	state = machine.apply(state, test_message("PREPARED", "B"))
+	check(state && state["owner"] == "A", "prepare retains source ownership")
+	var/list/conflict = test_message("RELEASED")
+	conflict["digest"] = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+	check(!machine.apply(state, conflict), "different snapshot")
+	state = machine.apply(state, test_message("RELEASED"))
+	check(state && state["owner"] == "B" && state["epoch"] == 2 && state["phase"] == "COMMITTED", "commit ownership")
+	var/list/retry = machine.apply(state, test_message("RELEASED"))
+	check(retry && retry["epoch"] == 2, "lost commit acknowledgement retry")
+	retry = machine.apply(state, test_message("ABORT"))
+	check(retry && retry["owner"] == "B" && retry["phase"] == "COMMITTED", "late abort never resurrects source")
+	check(!machine.arrive(state, "operation-0000001", "A", 2), "wrong arrival sender")
+	state = machine.arrive(state, "operation-0000001", "B", 2)
+	check(state && state["phase"] == "IDLE" && state["owner"] == "B", "arrival")
+	check(!machine.apply(state, test_message("RESERVE", "A", "operation-0000002")), "stale epoch cannot start next flight")
+	var/test_root = "test-journal-[world.realtime]-[rand(10000,99999)]/"
+	var/datum/transit_journal/journal = new(test_root)
+	check(journal.read_existing(), "empty journal")
+	check(journal.store(state), "durable commit")
+	state["owner"] = "mutated-alias"
+	check(journal.state["owner"] == "B", "journal detaches caller state")
+	var/datum/transit_journal/restarted = new(test_root)
+	check(restarted.read_existing() && restarted.state["owner"] == "B", "reload after restart")
+	check(restarted.store(restarted.state), "append after restart")
+	var/path = "[test_root]1.json"
+	fdel(path)
+	var/datum/transit_journal/missing = new(test_root)
+	check(!missing.read_existing(), "missing record fails closed")
+	fdel("[test_root]2.json")
+	var/key = "Jefe"
+	var/body = "what do ya want for nothing?"
+	var/signature = call_ext("transit_crypto", "transit_sign")(key, body)
+	check(signature == "5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843", "RFC 4231 HMAC vector")
+	check(call_ext("transit_crypto", "transit_verify")(key, body, signature) == "1", "valid HMAC")
+	check(call_ext("transit_crypto", "transit_verify")(key, "tampered", signature) == "0", "tampered HMAC")
+	var/datum/transit_peer/sender = new
+	var/datum/transit_peer/receiver = new
+	sender.server_id = "A"
+	sender.peer_id = "B"
+	receiver.server_id = "B"
+	receiver.peer_id = "A"
+	sender.secret = receiver.secret = "test-only-not-for-deployment"
+	sender.build_id = receiver.build_id = "test-build"
+	sender.pair_id = receiver.pair_id = "test-pair"
+	sender.round_id = "round-A"
+	receiver.round_id = "round-B"
+	var/nonce = rustg_csprng_chacha20("hex", 32)
+	body = sender.envelope(list("command" = "STATUS"), nonce)
+	signature = sender.sign_payload(body)
+	check(receiver.verify(body, signature), "authenticated envelope")
+	check(!sender.verify(body, signature), "reflection rejected")
+	check(!receiver.verify("[body] ", signature), "exact signed bytes")
+	var/response = receiver.receive(body, signature)
+	check(response == receiver.receive(body, signature), "same nonce returns identical receipt")
+	body = sender.envelope(list("command" = "DIFFERENT"), nonce)
+	check(receiver.receive(body, sender.sign_payload(body)) == "REJECTED", "nonce reuse with different body")
+	sender.build_id = "different-build"
+	body = sender.envelope(list("command" = "STATUS"), rustg_csprng_chacha20("hex", 32))
+	check(!receiver.verify(body, sender.sign_payload(body)), "incompatible build")
+	body = ""
+	for(var/index = 1; index <= 5000; index++)
+		body += "x"
+	var/datum/transit_snapshot_store/spool = new("[test_root]snapshot/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef/", rustg_hash_string(RUSTG_HASH_SHA256, body), 2, length(body))
+	check(spool.put(2, copytext(body, 4097)), "out of order snapshot chunk")
+	check(!spool.assemble(), "incomplete snapshot cannot prepare")
+	check(!spool.put(1, "short"), "wrong chunk size")
+	check(spool.put(1, copytext(body, 1, 4097)), "snapshot first chunk")
+	check(spool.put(1, copytext(body, 1, 4097)), "duplicate chunk is idempotent")
+	check(spool.assemble() == body, "verified snapshot reconstruction")
+	check(call_ext("transit_crypto", "transit_write")("[spool.root]1.chunk", "overwrite") == "0" && spool.assemble() == body, "native journal publisher refuses overwrite")
+	var/datum/transit_snapshot_store/reopened_spool = new("[test_root]snapshot/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef/", spool.digest, 2, length(body))
+	check(reopened_spool.assemble() == body, "snapshot survives process state loss")
+	var/unicode_text = ""
+	for(var/index = 1; index <= 1600; index++)
+		unicode_text += "Перелёт"
+	var/ascii_wire = rustg_hash_string("base64", unicode_text)
+	check(call_ext("rust_g", "decode_base64")("[copytext(ascii_wire, 1, 4097)][copytext(ascii_wire, 4097)]") == unicode_text, "Unicode survives an arbitrary transport chunk boundary")
+	fdel("[test_root]snapshot/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef/1.chunk")
+	fdel("[test_root]snapshot/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef/2.chunk")
+	var/datum/transit_values/value_codec = new
+	var/list/typed = list("position" = 123.4567, "nested" = list(null, 5, "Пример"), "null" = null)
+	var/list/value_record = value_codec.encode(typed)
+	check(!value_codec.error, "encode explicit values")
+	var/list/restored_values = value_codec.decode(json_decode(json_encode(value_record)))
+	check(restored_values["position"] == typed["position"] && json_encode(restored_values["nested"]) == json_encode(typed["nested"]), "exact numeric and nested value roundtrip")
+	check(!value_codec.decode(list("path" = "/datum/transit_peer")) && value_codec.error, "unregistered paths rejected")
+	world.log << "PASS: ownership, replay, round binding, journal recovery, HMAC"
+	text2file("PASS\n", "protocol-test-result.txt")
+	del(world)

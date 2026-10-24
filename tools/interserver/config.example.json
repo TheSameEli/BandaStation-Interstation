@@ -1,0 +1,15 @@
+{
+  "enabled": false,
+  "server_id": "A",
+  "peer_id": "B",
+  "station_name": "Кибериада",
+  "destination_name": "Метастейшен",
+  "coordinator_id": "A",
+  "pair_id": "replace-with-a-new-random-pair-id",
+  "secret": "replace-with-the-same-random-64-hex-secret-on-both-sides",
+  "peer_address": "127.0.0.1:1338",
+  "warning_seconds": 30,
+  "flight_seconds": 15,
+  "fade_seconds": 2,
+  "test_autostart": false
+}

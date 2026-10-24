@@ -29,6 +29,8 @@
 /mob/Login()
 	if(!client)
 		return FALSE
+	if(SSinterserver_transit.block_foreign_login(src)) // BANDASTATION ADDITION - off-server custody fence
+		return FALSE
 
 	canon_client = client
 	client.persistent_client.set_mob(src)

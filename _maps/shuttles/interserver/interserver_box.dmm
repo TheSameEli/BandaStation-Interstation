@@ -1,0 +1,249 @@
+//MAP CONVERTED BY dmm2tgm.py THIS HEADER COMMENT PREVENTS RECONVERSION, DO NOT REMOVE
+"a" = (
+/turf/template_noop,
+/area/template_noop)
+"o" = (
+/obj/effect/spawner/structure/window/reinforced/shuttle,
+/obj/structure/fans/tiny/invisible,
+/turf/open/floor/plating,
+/area/shuttle/interserver_transit)
+"z" = (
+/obj/machinery/power/shuttle_engine/propulsion/burst/left{
+	dir = 4
+	},
+/turf/open/floor/plating/airless,
+/area/shuttle/interserver_transit)
+"B" = (
+/obj/machinery/power/shuttle_engine/propulsion/burst/right{
+	dir = 4
+	},
+/turf/open/floor/plating/airless,
+/area/shuttle/interserver_transit)
+"C" = (
+/obj/machinery/computer/interserver_transit{
+	on_board = 1
+	},
+/turf/open/floor/mineral/titanium/blue,
+/area/shuttle/interserver_transit)
+"D" = (
+/obj/structure/chair/comfy/shuttle{
+	dir = 1
+	},
+/turf/open/floor/mineral/titanium/blue,
+/area/shuttle/interserver_transit)
+"E" = (
+/obj/machinery/power/shuttle_engine/propulsion{
+	dir = 4
+	},
+/turf/open/floor/plating/airless,
+/area/shuttle/interserver_transit)
+"F" = (
+/turf/closed/wall/mineral/titanium,
+/area/shuttle/interserver_transit)
+"G" = (
+/turf/open/floor/mineral/titanium/blue,
+/area/shuttle/interserver_transit)
+"H" = (
+/obj/structure/closet/interserver_transit,
+/turf/open/floor/mineral/titanium/blue,
+/area/shuttle/interserver_transit)
+"I" = (
+/turf/open/floor/mineral/titanium,
+/area/shuttle/interserver_transit)
+"J" = (
+/obj/machinery/door/airlock/titanium{
+	name = "Шлюз пассажирского шаттла"
+	},
+/turf/open/floor/mineral/titanium,
+/area/shuttle/interserver_transit)
+"K" = (
+/obj/structure/chair/comfy/shuttle{
+	dir = 8
+	},
+/turf/open/floor/mineral/titanium,
+/area/shuttle/interserver_transit)
+"L" = (
+/obj/structure/chair/comfy/shuttle,
+/turf/open/floor/mineral/titanium/blue,
+/area/shuttle/interserver_transit)
+"M" = (
+/obj/structure/chair/comfy/shuttle,
+/obj/machinery/light/small/directional/east,
+/turf/open/floor/mineral/titanium/blue,
+/area/shuttle/interserver_transit)
+"N" = (
+/obj/machinery/light/directional/south,
+/turf/open/floor/mineral/titanium/blue,
+/area/shuttle/interserver_transit)
+"O" = (
+/obj/structure/chair/comfy/shuttle{
+	dir = 1
+	},
+/obj/machinery/light/small/directional/east,
+/turf/open/floor/mineral/titanium/blue,
+/area/shuttle/interserver_transit)
+"P" = (
+/obj/structure/table,
+/turf/open/floor/mineral/titanium/blue,
+/area/shuttle/interserver_transit)
+"T" = (
+/obj/machinery/power/shuttle_engine/propulsion{
+	dir = 4
+	},
+/obj/docking_port/mobile/interserver_transit,
+/turf/open/floor/plating/airless,
+/area/shuttle/interserver_transit)
+"V" = (
+/obj/machinery/power/shuttle_engine/heater{
+	dir = 4
+	},
+/obj/structure/window/reinforced/spawner/directional/west,
+/turf/open/floor/plating/airless,
+/area/shuttle/interserver_transit)
+"W" = (
+/obj/machinery/door/airlock/titanium{
+	name = "Шлюз пассажирского шаттла"
+	},
+/obj/structure/fans/tiny,
+/turf/open/floor/plating,
+/area/shuttle/interserver_transit)
+"Z" = (
+/obj/machinery/light/directional/north,
+/turf/open/floor/mineral/titanium/blue,
+/area/shuttle/interserver_transit)
+
+(1,1,1) = {"
+a
+F
+o
+o
+o
+F
+a
+"}
+(2,1,1) = {"
+a
+F
+L
+I
+D
+F
+a
+"}
+(3,1,1) = {"
+a
+F
+M
+I
+O
+F
+a
+"}
+(4,1,1) = {"
+F
+F
+F
+J
+F
+F
+F
+"}
+(5,1,1) = {"
+F
+P
+I
+I
+I
+H
+F
+"}
+(6,1,1) = {"
+W
+G
+K
+K
+K
+G
+W
+"}
+(7,1,1) = {"
+F
+Z
+G
+G
+G
+G
+F
+"}
+(8,1,1) = {"
+o
+H
+K
+K
+K
+G
+o
+"}
+(9,1,1) = {"
+o
+H
+G
+G
+G
+G
+o
+"}
+(10,1,1) = {"
+o
+H
+K
+K
+K
+G
+o
+"}
+(11,1,1) = {"
+o
+H
+G
+G
+G
+G
+o
+"}
+(12,1,1) = {"
+F
+C
+K
+K
+K
+N
+F
+"}
+(13,1,1) = {"
+W
+G
+I
+I
+I
+G
+W
+"}
+(14,1,1) = {"
+F
+V
+V
+V
+V
+V
+F
+"}
+(15,1,1) = {"
+F
+B
+E
+T
+E
+z
+F
+"}

@@ -69,6 +69,8 @@
 /// The assertion is that readiness must be an opted in TRUE, while all other states (e.g. not ready, broken, etc) are FALSE.
 /// We organize it this way to ensure the system is extensible for other possible ready states.
 /mob/dead/new_player/proc/is_ready_to_play()
+	if(SSinterserver_transit.has_transit_account(ckey)) // BANDASTATION ADDITION - no second roundstart character
+		return FALSE
 	return ready == PLAYER_READY_TO_PLAY
 
 //When you cop out of the round (NB: this HAS A SLEEP FOR PLAYER INPUT IN IT)
@@ -159,6 +161,9 @@
 	return JOB_AVAILABLE
 
 /mob/dead/new_player/proc/AttemptLateSpawn(rank)
+	if(SSinterserver_transit.has_transit_account(ckey)) // BANDASTATION ADDITION - reconnect through the transfer record
+		SSinterserver_transit.claim_client(client)
+		return FALSE
 	// Check that they're picking someone new for new character respawning
 	if(CONFIG_GET(flag/allow_respawn) == RESPAWN_FLAG_NEW_CHARACTER)
 		if(client?.is_localhost())
@@ -278,6 +283,8 @@
  * * forced_slot - if provided, will load whatever character is in that slot instead of their active slot
  */
 /mob/dead/new_player/proc/create_character(atom/destination, forced_slot)
+	if(SSinterserver_transit.has_transit_account(ckey)) // BANDASTATION ADDITION - protect all spawn callers
+		return
 	spawning = TRUE
 
 	var/spawned_slot = isnum(forced_slot) ? forced_slot : LAZYACCESS(client.prefs.job_assigned_profiles, mind.assigned_role.title)

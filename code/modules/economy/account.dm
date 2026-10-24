@@ -3,6 +3,7 @@
 #define NO_MY_MONEY 10000
 
 /datum/bank_account
+	var/transit_locked = FALSE // BANDASTATION ADDITION - freeze home accounts while their owner is travelling
 	///Name listed on the account, reflected on the ID card.
 	var/account_holder = "Rusty Venture"
 	///How many credits are currently held in the bank account.
@@ -142,6 +143,8 @@
  * * amount - the quantity of credits that will be reconciled with the account balance.
  */
 /datum/bank_account/proc/has_money(amount)
+	if(transit_locked) // BANDASTATION ADDITION - interserver account custody
+		return FALSE
 	return account_balance >= amount
 
 /**
@@ -151,6 +154,8 @@
  * * reason - the reason for the appearance or loss of money
  */
 /datum/bank_account/proc/adjust_money(amount, reason)
+	if(transit_locked) // BANDASTATION ADDITION - interserver account custody
+		return FALSE
 	if((amount < 0 && has_money(-amount)) || amount > 0)
 		var/debt_collected = 0
 		if(account_debt > 0 && amount > 0)
@@ -184,6 +189,8 @@
  * * transfer_reason - override for adjust_money reason. Use if no default reason(Transfer to/from Name Surname).
  */
 /datum/bank_account/proc/transfer_money(datum/bank_account/from, amount, transfer_reason)
+	if(transit_locked || from?.transit_locked) // BANDASTATION ADDITION - prevent one-sided debit/credit
+		return FALSE
 	if(from.has_money(amount))
 		var/reason_to = "Перевод: От [from.account_holder]"
 		var/reason_from = "Перевод: [account_holder]"
@@ -213,6 +220,8 @@
  * * event - the name of the event that is being processed, used for bank card messages.
  */
 /datum/bank_account/proc/payday(amount_of_paychecks, free = FALSE, skippable = FALSE, event = "Выплата зарплаты")
+	if(transit_locked) // BANDASTATION ADDITION - no salary while the owner is off-station
+		return FALSE
 	if(!account_job)
 		return FALSE
 

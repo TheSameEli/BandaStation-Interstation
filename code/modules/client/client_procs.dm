@@ -601,6 +601,7 @@ GLOBAL_LIST_INIT(unrecommended_builds, list(
 	SEND_GLOBAL_SIGNAL(COMSIG_GLOB_CLIENT_CONNECT, src)
 	fully_created = TRUE
 	set_fullscreen()
+	SSinterserver_transit.claim_client(src) // BANDASTATION ADDITION - authoritative arrival/reconnect binding
 
 //////////////
 //DISCONNECT//

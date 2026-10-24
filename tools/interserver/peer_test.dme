@@ -1,0 +1,48 @@
+#define TRUE 1
+#define FALSE 0
+#define rustg_csprng_chacha20(format, n_bytes) call_ext("rust_g", "csprng_chacha20")(format, "[n_bytes]")
+#include "../../modular_bandastation/interserver_transit/code/peer.dm"
+
+var/datum/transit_peer/test/peer
+
+/datum/transit_peer/test
+	var/counter = 0
+
+/datum/transit_peer/test/dispatch(list/payload, remote_round)
+	if(remote_round != "round-A")
+		return list("error" = "Wrong round")
+	if(payload["command"] == "ECHO")
+		counter++
+		return list("counter" = counter, "value" = payload["value"])
+	if(payload["command"] == "STOP")
+		spawn(10)
+			del(world)
+		return list("stopping" = TRUE)
+	return list("error" = "Unsupported")
+
+/world/Topic(raw)
+	var/list/query = params2list(raw)
+	return peer.receive(query["body"], query["signature"])
+
+/world/New()
+	..()
+	peer = new
+	peer.secret = file2text("peer-test.key")
+	peer.build_id = "peer-test-build"
+	peer.pair_id = "peer-test-pair"
+	peer.server_id = params["side"]
+	peer.peer_id = peer.server_id == "A" ? "B" : "A"
+	peer.round_id = "round-[peer.server_id]"
+	peer.peer_address = "127.0.0.1:[params["peer-port"]]"
+	if(peer.server_id != "A")
+		return
+	fdel("peer-test-result.txt")
+	spawn(10)
+		var/list/response = peer.request(list("command" = "ECHO", "value" = "Перелёт A → B"))
+		var/list/payload = response?["payload"]
+		if(payload?["counter"] != 1 || payload?["value"] != "Перелёт A → B" || response?["round"] != "round-B")
+			text2file("FAIL: [peer.error]\n", "peer-test-result.txt")
+		else
+			text2file("PASS: signed Unicode exchange between two DreamDaemon processes\n", "peer-test-result.txt")
+		peer.request(list("command" = "STOP"))
+		del(world)
